@@ -13,15 +13,17 @@ function CleanersDashboard() {
         const res = await axios.get(`${process.env.REACT_APP_API_URL}/cleaners`);
         console.log('✅ All cleaners from backend:', res.data);
 
-        // Normalize status field to lowercase
-        const normalizedCleaners = res.data.map(c => ({
-          ...c,
-          status: (c.Status || c.status)?.toLowerCase() || 'unknown',
-        }));
+        // Normalize and filter free cleaners
+        const freeCleaners = res.data
+          .map(c => ({
+            id: c.id,
+            name: c.name?.trim() || '',
+            email: c.email?.trim() || '',
+            status: c.status?.toLowerCase() || 'unknown',
+          }))
+          .filter(c => c.status === 'free');
 
-        // Filter only free cleaners
-        const freeCleaners = normalizedCleaners.filter(c => c.status === 'free');
-
+        console.log('✅ Free cleaners:', freeCleaners);
         setCleaners(freeCleaners);
       } catch (err) {
         console.error('❌ Failed to fetch cleaners:', err);
@@ -35,7 +37,7 @@ function CleanersDashboard() {
 
   const handleSelectCleaner = async (cleaner) => {
     const emailBody = `
-Hello ${cleaner.Name || cleaner.name},
+Hello ${cleaner.name},
 
 You have been selected for a new cleaning appointment:
 📅 Date: ${bookingDate?.toLocaleDateString()}
@@ -47,12 +49,12 @@ Please confirm your availability.
 
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/send-email`, {
-        to: cleaner.Email || cleaner.email,
+        to: cleaner.email,
         subject: 'New Cleaning Assignment',
         text: emailBody,
       });
 
-      alert(`✅ Email sent to ${cleaner.Name || cleaner.name}`);
+      alert(`✅ Email sent to ${cleaner.name}`);
     } catch (error) {
       console.error('❌ Error sending email:', error);
       alert('Failed to send email. Please try again.');
@@ -69,8 +71,8 @@ Please confirm your availability.
       ) : (
         cleaners.map((cleaner) => (
           <div key={cleaner.id} style={styles.card}>
-            <p><strong>Name:</strong> {cleaner.Name || cleaner.name}</p>
-            <p><strong>Email:</strong> {cleaner.Email || cleaner.email}</p>
+            <p><strong>Name:</strong> {cleaner.name}</p>
+            <p><strong>Email:</strong> {cleaner.email}</p>
             <p><strong>Status:</strong> {cleaner.status}</p>
             <button
               style={styles.button}
