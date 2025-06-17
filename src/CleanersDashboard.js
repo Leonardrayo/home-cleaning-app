@@ -11,8 +11,17 @@ function CleanersDashboard() {
     const fetchCleaners = async () => {
       try {
         const res = await axios.get(`${process.env.REACT_APP_API_URL}/cleaners`);
-        console.log('✅ All cleaners:', res.data);
-        const freeCleaners = res.data.filter(c => c.Status === 'Free'); // Capital "Status" and "Free"
+        console.log('✅ All cleaners from backend:', res.data);
+
+        // Normalize status field to lowercase
+        const normalizedCleaners = res.data.map(c => ({
+          ...c,
+          status: (c.Status || c.status)?.toLowerCase() || 'unknown',
+        }));
+
+        // Filter only free cleaners
+        const freeCleaners = normalizedCleaners.filter(c => c.status === 'free');
+
         setCleaners(freeCleaners);
       } catch (err) {
         console.error('❌ Failed to fetch cleaners:', err);
@@ -26,7 +35,7 @@ function CleanersDashboard() {
 
   const handleSelectCleaner = async (cleaner) => {
     const emailBody = `
-Hello ${cleaner.Name},
+Hello ${cleaner.Name || cleaner.name},
 
 You have been selected for a new cleaning appointment:
 📅 Date: ${bookingDate?.toLocaleDateString()}
@@ -38,12 +47,12 @@ Please confirm your availability.
 
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/send-email`, {
-        to: cleaner.Email,
+        to: cleaner.Email || cleaner.email,
         subject: 'New Cleaning Assignment',
         text: emailBody,
       });
 
-      alert(`✅ Email sent to ${cleaner.Name}`);
+      alert(`✅ Email sent to ${cleaner.Name || cleaner.name}`);
     } catch (error) {
       console.error('❌ Error sending email:', error);
       alert('Failed to send email. Please try again.');
@@ -60,9 +69,9 @@ Please confirm your availability.
       ) : (
         cleaners.map((cleaner) => (
           <div key={cleaner.id} style={styles.card}>
-            <p><strong>Name:</strong> {cleaner.Name}</p>
-            <p><strong>Email:</strong> {cleaner.Email}</p>
-            <p><strong>Status:</strong> {cleaner.Status}</p>
+            <p><strong>Name:</strong> {cleaner.Name || cleaner.name}</p>
+            <p><strong>Email:</strong> {cleaner.Email || cleaner.email}</p>
+            <p><strong>Status:</strong> {cleaner.status}</p>
             <button
               style={styles.button}
               onClick={() => handleSelectCleaner(cleaner)}
