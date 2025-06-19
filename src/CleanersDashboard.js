@@ -5,38 +5,44 @@ import { useBooking } from './BookingContext';
 function CleanersDashboard() {
   const [cleaners, setCleaners] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // 🔄 New filter state
+  const [filter, setFilter] = useState('all');
+  const [selectedCleaner, setSelectedCleaner] = useState(null);
   const { bookingDate, bookingTime, itemsToClean } = useBooking();
 
   useEffect(() => {
     const fetchCleaners = async () => {
       try {
         const baseURL = process.env.REACT_APP_API_URL;
-        if (!baseURL) {
-          console.error("❌ Missing REACT_APP_API_URL in .env");
-          return;
-        }
+        if (!baseURL) return console.error("❌ Missing REACT_APP_API_URL");
 
         const res = await axios.get(`${baseURL}/cleaners`);
-        console.log('✅ All cleaners from backend:', res.data);
-
-        const normalizedCleaners = res.data.map(c => ({
+        const normalized = res.data.map(c => ({
           id: c.id,
           name: c.name?.trim() || '',
           email: c.email?.trim() || '',
           status: c.status?.toLowerCase() || 'unknown',
         }));
-
-        setCleaners(normalizedCleaners);
+        setCleaners(normalized);
       } catch (err) {
         console.error('❌ Failed to fetch cleaners:', err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchCleaners();
   }, []);
+
+  const updateCleanerStatus = async (cleanerId, newStatus) => {
+    try {
+      const baseURL = process.env.REACT_APP_API_URL;
+      await axios.put(`${baseURL}/cleaners/${cleanerId}, { status: newStatus }`);
+      setCleaners(prev =>
+        prev.map(c => (c.id === cleanerId ? { ...c, status: newStatus } : c))
+      );
+    } catch (err) {
+      console.error(`❌ Failed to update status for ${cleanerId}:, err`);
+    }
+  };
 
   const handleSelectCleaner = async (cleaner) => {
     const emailBody = `
@@ -51,20 +57,22 @@ Please confirm your availability.
     `;
 
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/send-email`, {
+      const baseURL = process.env.REACT_APP_API_URL;
+      await axios.post(`${baseURL}/send-email`, {
         to: cleaner.email,
         subject: 'New Cleaning Assignment',
         text: emailBody,
       });
 
-      alert(`✅ Email sent to ${cleaner.name}`);
+      await updateCleanerStatus(cleaner.id, 'working');
+      setSelectedCleaner(cleaner);
+      alert(`✅ Email sent & ${cleaner.name}'s status updated`);
     } catch (error) {
-      console.error('❌ Error sending email:', error);
-      alert('Failed to send email. Please try again.');
+      console.error('❌ Error selecting cleaner:', error);
+      alert('Failed to send email or update status.');
     }
   };
 
-  // 🔍 Apply filtering
   const filteredCleaners = filter === 'all'
     ? cleaners
     : cleaners.filter(c => c.status === filter);
@@ -75,21 +83,26 @@ Please confirm your availability.
     <div style={styles.container}>
       <h2>Cleaners Dashboard</h2>
 
-      {/* 🔽 Filter Dropdown */}
+      {/* 🔎 Filter */}
       <div style={{ marginBottom: '20px' }}>
-        <label htmlFor="statusFilter"><strong>Filter by status:</strong> </label>
-        <select
-          id="statusFilter"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          style={styles.select}
-        >
+        <label><strong>Filter by status:</strong> </label>
+        <select value={filter} onChange={(e) => setFilter(e.target.value)} style={styles.select}>
           <option value="all">All</option>
           <option value="free">Free</option>
           <option value="working">Working</option>
           <option value="on leave">On Leave</option>
         </select>
       </div>
+
+      {/* 👤 Selected Cleaner Display */}
+      {selectedCleaner && (
+        <div style={styles.selectedCard}>
+          <h4>✅ Selected Cleaner</h4>
+          <p><strong>Name:</strong> {selectedCleaner.name}</p>
+          <p><strong>Email:</strong> {selectedCleaner.email}</p>
+          <p><strong>Status:</strong> {selectedCleaner.status}</p>
+        </div>
+      )}
 
       {filteredCleaners.length === 0 ? (
         <p>No cleaners match this filter.</p>
@@ -99,13 +112,30 @@ Please confirm your availability.
             <p><strong>Name:</strong> {cleaner.name}</p>
             <p><strong>Email:</strong> {cleaner.email}</p>
             <p><strong>Status:</strong> {cleaner.status}</p>
-            <button
-              style={styles.button}
-              onClick={() => handleSelectCleaner(cleaner)}
-              disabled={!bookingDate || !bookingTime}
-            >
-              Select Cleaner
-            </button>
+
+            <div style={styles.buttonGroup}>
+              <button
+                style={styles.primaryButton}
+                onClick={() => handleSelectCleaner(cleaner)}
+                disabled={!bookingDate || !bookingTime}
+              >
+                Select Cleaner
+              </button>
+
+              <button
+                style={styles.secondaryButton}
+                onClick={() => updateCleanerStatus(cleaner.id, 'free')}
+              >
+                Mark as Free
+              </button>
+
+              <button
+                style={styles.leaveButton}
+                onClick={() => updateCleanerStatus(cleaner.id, 'on leave')}
+              >
+                Mark On Leave
+              </button>
+            </div>
           </div>
         ))
       )}
@@ -116,7 +146,7 @@ Please confirm your availability.
 const styles = {
   container: {
     padding: '20px',
-    maxWidth: '600px',
+    maxWidth: '700px',
     margin: '0 auto',
     marginTop: '40px',
   },
@@ -126,19 +156,46 @@ const styles = {
     fontSize: '14px',
     marginLeft: '8px',
   },
+  selectedCard: {
+    backgroundColor: '#e6ffed',
+    padding: '15px',
+    marginBottom: '25px',
+    border: '2px solid #2ecc71',
+    borderRadius: '8px',
+  },
   card: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f4f4f4',
     borderRadius: '10px',
     padding: '15px',
     marginBottom: '15px',
-    boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
   },
-  button: {
+  buttonGroup: {
     marginTop: '10px',
-    padding: '10px 16px',
-    fontSize: '15px',
+    display: 'flex',
+    gap: '10px',
+    flexWrap: 'wrap',
+  },
+  primaryButton: {
     backgroundColor: '#1e7f2f',
     color: 'white',
+    padding: '8px 14px',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+  },
+  secondaryButton: {
+    backgroundColor: '#3498db',
+    color: 'white',
+    padding: '8px 14px',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+  },
+  leaveButton: {
+    backgroundColor: '#e67e22',
+    color: 'white',
+    padding: '8px 14px',
     border: 'none',
     borderRadius: '6px',
     cursor: 'pointer',
