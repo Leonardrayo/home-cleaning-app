@@ -32,7 +32,34 @@ function CleanersDashboard() {
     fetchCleaners();
   }, []);
 
+  const updateCleanerStatus = async (cleanerId, newStatus) => {
+    try {
+      const baseURL = process.env.REACT_APP_API_URL;
+      await axios.put(`${baseURL}/cleaners/${cleanerId}, { status: newStatus }`);
+      setCleaners(prev =>
+        prev.map(c => (c.id === cleanerId ? { ...c, status: newStatus } : c))
+      );
+    } catch (err) {
+      console.error(`❌ Failed to update status for ${cleanerId}:, err`);
+    }
+  };
+
   const handleSelectCleaner = async (cleaner) => {
+    if (!bookingDate || !bookingTime) {
+      alert('❗ Please select a date and time first.');
+      return;
+    }
+
+    if (cleaner.status === 'working') {
+      alert(`${cleaner.name} is currently working and cannot be selected.`);
+      return;
+    }
+
+    if (selectedCleaner?.id === cleaner.id) {
+      alert(`${cleaner.name} is already selected.`);
+      return;
+    }
+
     const emailBody = `
 Hello ${cleaner.name},
 
@@ -52,11 +79,12 @@ Please confirm your availability.
         text: emailBody,
       });
 
+      await updateCleanerStatus(cleaner.id, 'working');
       setSelectedCleaner(cleaner);
-      alert(`✅ Email sent to ${cleaner.name}`);
+      alert(`✅ Email sent & ${cleaner.name}'s status updated`);
     } catch (error) {
       console.error('❌ Error selecting cleaner:', error);
-      alert('Failed to send email. Please try again.');
+      alert('Failed to send email or update status.');
     }
   };
 
@@ -99,10 +127,15 @@ Please confirm your availability.
             <p><strong>Name:</strong> {cleaner.name}</p>
             <p><strong>Email:</strong> {cleaner.email}</p>
             <p><strong>Status:</strong> {cleaner.status}</p>
+
             <button
-              style={styles.primaryButton}
+              style={{
+                ...styles.primaryButton,
+                opacity: (!bookingDate || !bookingTime || cleaner.status === 'working') ? 0.5 : 1,
+                cursor: (!bookingDate || !bookingTime || cleaner.status === 'working') ? 'not-allowed' : 'pointer'
+              }}
               onClick={() => handleSelectCleaner(cleaner)}
-              disabled={!bookingDate || !bookingTime}
+              disabled={!bookingDate || !bookingTime || cleaner.status === 'working'}
             >
               Select Cleaner
             </button>
@@ -146,7 +179,7 @@ const styles = {
     padding: '8px 14px',
     border: 'none',
     borderRadius: '6px',
-    cursor: 'pointer',
+    marginTop: '10px',
   },
 };
 
