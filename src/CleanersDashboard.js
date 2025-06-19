@@ -10,21 +10,23 @@ function CleanersDashboard() {
   useEffect(() => {
     const fetchCleaners = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}/cleaners`);
+        const baseURL = process.env.REACT_APP_API_URL;
+        if (!baseURL) {
+          console.error("❌ Missing REACT_APP_API_URL in .env");
+          return;
+        }
+
+        const res = await axios.get(`${baseURL}/cleaners`);
         console.log('✅ All cleaners from backend:', res.data);
 
-        // Normalize and filter free cleaners
-        const freeCleaners = res.data
-          .map(c => ({
-            id: c.id,
-            name: c.name?.trim() || '',
-            email: c.email?.trim() || '',
-            status: c.status?.toLowerCase() || 'unknown',
-          }))
-          .filter(c => c.status === 'free');
+        const normalizedCleaners = res.data.map(c => ({
+          id: c.id,
+          name: c.name?.trim() || '',
+          email: c.email?.trim() || '',
+          status: c.status?.toLowerCase() || 'unknown',
+        }));
 
-        console.log('✅ Free cleaners:', freeCleaners);
-        setCleaners(freeCleaners);
+        setCleaners(normalizedCleaners);
       } catch (err) {
         console.error('❌ Failed to fetch cleaners:', err);
       } finally {
