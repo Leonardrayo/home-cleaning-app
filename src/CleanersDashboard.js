@@ -32,18 +32,6 @@ function CleanersDashboard() {
     fetchCleaners();
   }, []);
 
-  const updateCleanerStatus = async (cleanerId, newStatus) => {
-    try {
-      const baseURL = process.env.REACT_APP_API_URL;
-      await axios.put(`${baseURL}/cleaners/${cleanerId}, { status: newStatus }`);
-      setCleaners(prev =>
-        prev.map(c => (c.id === cleanerId ? { ...c, status: newStatus } : c))
-      );
-    } catch (err) {
-      console.error(`❌ Failed to update status for ${cleanerId}:, err`);
-    }
-  };
-
   const handleSelectCleaner = async (cleaner) => {
     const emailBody = `
 Hello ${cleaner.name},
@@ -64,12 +52,11 @@ Please confirm your availability.
         text: emailBody,
       });
 
-      await updateCleanerStatus(cleaner.id, 'working');
       setSelectedCleaner(cleaner);
-      alert(`✅ Email sent & ${cleaner.name}'s status updated`);
+      alert(`✅ Email sent to ${cleaner.name}`);
     } catch (error) {
       console.error('❌ Error selecting cleaner:', error);
-      alert('Failed to send email or update status.');
+      alert('Failed to send email. Please try again.');
     }
   };
 
@@ -112,30 +99,13 @@ Please confirm your availability.
             <p><strong>Name:</strong> {cleaner.name}</p>
             <p><strong>Email:</strong> {cleaner.email}</p>
             <p><strong>Status:</strong> {cleaner.status}</p>
-
-            <div style={styles.buttonGroup}>
-              <button
-                style={styles.primaryButton}
-                onClick={() => handleSelectCleaner(cleaner)}
-                disabled={!bookingDate || !bookingTime}
-              >
-                Select Cleaner
-              </button>
-
-              <button
-                style={styles.secondaryButton}
-                onClick={() => updateCleanerStatus(cleaner.id, 'free')}
-              >
-                Mark as Free
-              </button>
-
-              <button
-                style={styles.leaveButton}
-                onClick={() => updateCleanerStatus(cleaner.id, 'on leave')}
-              >
-                Mark On Leave
-              </button>
-            </div>
+            <button
+              style={styles.primaryButton}
+              onClick={() => handleSelectCleaner(cleaner)}
+              disabled={!bookingDate || !bookingTime}
+            >
+              Select Cleaner
+            </button>
           </div>
         ))
       )}
@@ -170,30 +140,8 @@ const styles = {
     marginBottom: '15px',
     boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
   },
-  buttonGroup: {
-    marginTop: '10px',
-    display: 'flex',
-    gap: '10px',
-    flexWrap: 'wrap',
-  },
   primaryButton: {
     backgroundColor: '#1e7f2f',
-    color: 'white',
-    padding: '8px 14px',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-  },
-  secondaryButton: {
-    backgroundColor: '#3498db',
-    color: 'white',
-    padding: '8px 14px',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-  },
-  leaveButton: {
-    backgroundColor: '#e67e22',
     color: 'white',
     padding: '8px 14px',
     border: 'none',
