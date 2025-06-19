@@ -5,6 +5,7 @@ import { useBooking } from './BookingContext';
 function CleanersDashboard() {
   const [cleaners, setCleaners] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all'); // 🔄 New filter state
   const { bookingDate, bookingTime, itemsToClean } = useBooking();
 
   useEffect(() => {
@@ -63,15 +64,37 @@ Please confirm your availability.
     }
   };
 
+  // 🔍 Apply filtering
+  const filteredCleaners = filter === 'all'
+    ? cleaners
+    : cleaners.filter(c => c.status === filter);
+
   if (loading) return <p>Loading cleaners...</p>;
 
   return (
     <div style={styles.container}>
-      <h2>Available Cleaners</h2>
-      {cleaners.length === 0 ? (
-        <p>No cleaners available.</p>
+      <h2>Cleaners Dashboard</h2>
+
+      {/* 🔽 Filter Dropdown */}
+      <div style={{ marginBottom: '20px' }}>
+        <label htmlFor="statusFilter"><strong>Filter by status:</strong> </label>
+        <select
+          id="statusFilter"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          style={styles.select}
+        >
+          <option value="all">All</option>
+          <option value="free">Free</option>
+          <option value="working">Working</option>
+          <option value="on leave">On Leave</option>
+        </select>
+      </div>
+
+      {filteredCleaners.length === 0 ? (
+        <p>No cleaners match this filter.</p>
       ) : (
-        cleaners.map((cleaner) => (
+        filteredCleaners.map((cleaner) => (
           <div key={cleaner.id} style={styles.card}>
             <p><strong>Name:</strong> {cleaner.name}</p>
             <p><strong>Email:</strong> {cleaner.email}</p>
@@ -96,6 +119,12 @@ const styles = {
     maxWidth: '600px',
     margin: '0 auto',
     marginTop: '40px',
+  },
+  select: {
+    padding: '8px 12px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    marginLeft: '8px',
   },
   card: {
     backgroundColor: '#f0f0f0',
