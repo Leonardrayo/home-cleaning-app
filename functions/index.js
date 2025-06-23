@@ -13,8 +13,8 @@ exports.sendCleanerNotification = functions.https.onCall(async (data, context) =
 
   if (!cleanerName || !cleanerEmail || !clientEmail) {
     throw new functions.https.HttpsError(
-      "invalid-argument",
-      "Missing required fields"
+        "invalid-argument",
+        "Missing required fields",
     );
   }
 
