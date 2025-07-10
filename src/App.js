@@ -3,13 +3,13 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 // PAGES
-import AuthPage            from "./AuthPage";
-import Dashboard           from "./Dashboard";
-import CleanersDashboard   from "./CleanersDashboard";
+import AuthPage from "./AuthPage";
+import Dashboard from "./Dashboard";
+import CleanersDashboard from "./CleanersDashboard";
 
 // CONTEXTS
 import { BookingProvider } from "./BookingContext";
-import { AuthProvider, useAuth } from "../AuthContext";   //  ⬅ you'll create this (snippet below)
+import { AuthProvider, useAuth } from "./Context/AuthContext";  // ✅ Fixed import path
 
 /* ───────────────────────────
    Re-usable <PrivateRoute/>
@@ -17,8 +17,8 @@ import { AuthProvider, useAuth } from "../AuthContext";   //  ⬅ you'll create 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
 
-  if (loading) return <p style={{textAlign:"center"}}>Checking credentials…</p>;
-  if (!user)     return <Navigate to="/auth" replace />;
+  if (loading) return <p style={{ textAlign: "center" }}>Checking credentials…</p>;
+  if (!user) return <Navigate to="/auth" replace />;
 
   return children;
 }
@@ -32,10 +32,10 @@ export default function App() {
       <BookingProvider>
         <Router>
           <Routes>
-            {/* public route  */}
+            {/* public route */}
             <Route path="/auth" element={<AuthPage />} />
 
-            {/* protected routes  */}
+            {/* protected routes */}
             <Route
               path="/"
               element={
